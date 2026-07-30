@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sendrec/sendrec/internal/auth"
 	"github.com/sendrec/sendrec/internal/billing"
+	"github.com/sendrec/sendrec/internal/capture"
 	"github.com/sendrec/sendrec/internal/database"
 	"github.com/sendrec/sendrec/internal/docs"
 	"github.com/sendrec/sendrec/internal/geoip"
@@ -48,27 +49,31 @@ type Config struct {
 	NoiseReductionFilter    string
 	AllowedFrameAncestors   string
 	AnalyticsScript         string
-	EmailSender             auth.EmailSender
-	CommentNotifier         video.CommentNotifier
-	ViewNotifier            video.ViewNotifier
-	SlackNotifier           video.SlackNotifier
-	WebhookClient           *webhook.Client
-	CreemAPIKey              string
-	CreemWebhookSecret       string
-	CreemProProductID        string
-	CreemOrgProProductID     string
-	CreemBusinessProductID   string
+	// CaptureTokenSecret enables the cross-origin capture hand-off (a MajorGTM
+	// fork addition). Empty means the /capture route is not registered at all —
+	// a stock deployment has no parent application to trust.
+	CaptureTokenSecret        string
+	EmailSender               auth.EmailSender
+	CommentNotifier           video.CommentNotifier
+	ViewNotifier              video.ViewNotifier
+	SlackNotifier             video.SlackNotifier
+	WebhookClient             *webhook.Client
+	CreemAPIKey               string
+	CreemWebhookSecret        string
+	CreemProProductID         string
+	CreemOrgProProductID      string
+	CreemBusinessProductID    string
 	CreemOrgBusinessProductID string
-	RegistrationEnabled     bool
-	PlanBadgeEnabled        bool
-	GeoIPDBPath             string
-	GoogleClientID          string
-	GoogleClientSecret      string
-	GoogleAllowedDomains    []string
-	MicrosoftClientID       string
-	MicrosoftClientSecret   string
-	GitHubSSOClientID       string
-	GitHubSSOClientSecret   string
+	RegistrationEnabled       bool
+	PlanBadgeEnabled          bool
+	GeoIPDBPath               string
+	GoogleClientID            string
+	GoogleClientSecret        string
+	GoogleAllowedDomains      []string
+	MicrosoftClientID         string
+	MicrosoftClientSecret     string
+	GitHubSSOClientID         string
+	GitHubSSOClientSecret     string
 }
 
 type Server struct {
@@ -81,6 +86,7 @@ type Server struct {
 	integrationHandler  *integration.Handler
 	ssoHandler          *sso.Handler
 	scimHandler         *scim.Handler
+	captureHandler      *capture.Handler
 	db                  database.DBTX
 	billingHandlers     *billing.Handlers
 	webFS               fs.FS
@@ -116,6 +122,11 @@ func New(cfg Config) *Server {
 		secureCookies := strings.HasPrefix(baseURL, "https://")
 		s.authHandler = auth.NewHandler(cfg.DB, jwtSecret, secureCookies)
 		s.authHandler.SetRegistrationEnabled(cfg.RegistrationEnabled)
+		// Fork addition. Constructed only when a secret is configured, so the
+		// route simply does not exist on a stock deployment.
+		if cfg.CaptureTokenSecret != "" {
+			s.captureHandler = capture.NewHandler(cfg.DB, jwtSecret, cfg.CaptureTokenSecret)
+		}
 		if cfg.EmailSender != nil {
 			s.authHandler.SetEmailSender(cfg.EmailSender, baseURL)
 		}
@@ -246,6 +257,15 @@ func (s *Server) routes() {
 	if s.enableDocs {
 		s.router.Get("/api/docs", docs.HandleDocs)
 		s.router.Get("/api/docs/openapi.yaml", docs.HandleSpec)
+	}
+
+	// The capture hand-off (fork addition). Its own limiter rather than the
+	// login one: a person opening the recorder should not be turned away because
+	// someone behind the same address fumbled a password five times, and the
+	// token is HMAC-protected — this bounds abuse, it is not the defence.
+	if s.captureHandler != nil {
+		captureLimiter := ratelimit.NewLimiter(1, 10)
+		s.router.With(captureLimiter.Middleware).Get("/capture", s.captureHandler.Redeem)
 	}
 
 	if s.authHandler != nil {

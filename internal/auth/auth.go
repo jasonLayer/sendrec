@@ -287,6 +287,15 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A cross-site session's cookie is SameSite=None, so the browser will
+	// present it on a request any page can trigger. Refuse before touching the
+	// database: rotation revokes the presented token, which would turn a forged
+	// request into a working denial of service. (Fork addition — crosssite.go.)
+	if claims.CrossSite && !requireFirstPartyInitiator(r) {
+		httputil.WriteError(w, http.StatusUnauthorized, "invalid refresh token")
+		return
+	}
+
 	if err := h.validateStoredRefreshToken(r.Context(), claims.UserID, claims.TokenID); err != nil {
 		httputil.WriteError(w, http.StatusUnauthorized, "invalid refresh token")
 		return
@@ -297,13 +306,20 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.issueTokens(r.Context(), claims.UserID)
+	// Rotation must preserve the KIND of session, not just the user. Re-issuing
+	// a capture session as SameSite=Strict makes the hand-off work exactly once
+	// and then vanish on the next load, with no error anywhere to explain it.
+	accessToken, refreshToken, err := issueTokensScoped(r.Context(), h.db, h.jwtSecret, claims.UserID, claims.CrossSite)
 	if err != nil {
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to generate tokens")
 		return
 	}
 
-	h.setRefreshTokenCookie(w, refreshToken)
+	if claims.CrossSite {
+		SetCrossSiteRefreshTokenCookie(w, refreshToken)
+	} else {
+		h.setRefreshTokenCookie(w, refreshToken)
+	}
 	httputil.WriteJSON(w, http.StatusOK, tokenResponse{AccessToken: accessToken})
 }
 
@@ -824,27 +840,7 @@ func (h *Handler) setRefreshTokenCookie(w http.ResponseWriter, token string) {
 // IssueTokens generates an access/refresh token pair for the given user,
 // persists the refresh token in the database, and returns both tokens.
 func IssueTokens(ctx context.Context, db database.DBTX, jwtSecret, userID string) (accessToken, refreshToken string, err error) {
-	tokenID, err := NewTokenID()
-	if err != nil {
-		return "", "", fmt.Errorf("generate token id: %w", err)
-	}
-
-	expiresAt := time.Now().Add(RefreshTokenDuration)
-	if _, err := db.Exec(ctx, "INSERT INTO refresh_tokens (token_id, user_id, expires_at, revoked) VALUES ($1, $2, $3, false)", tokenID, userID, expiresAt); err != nil {
-		return "", "", fmt.Errorf("store refresh token: %w", err)
-	}
-
-	accessToken, err = GenerateAccessToken(jwtSecret, userID)
-	if err != nil {
-		return "", "", fmt.Errorf("generate access token: %w", err)
-	}
-
-	refreshToken, err = GenerateRefreshToken(jwtSecret, userID, tokenID)
-	if err != nil {
-		return "", "", fmt.Errorf("generate refresh token: %w", err)
-	}
-
-	return accessToken, refreshToken, nil
+	return issueTokensScoped(ctx, db, jwtSecret, userID, false)
 }
 
 func (h *Handler) issueTokens(ctx context.Context, userID string) (accessToken, refreshToken string, err error) {

@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sendrec/sendrec/internal/capture"
 	"github.com/sendrec/sendrec/internal/database"
 	"github.com/sendrec/sendrec/internal/email"
 	"github.com/sendrec/sendrec/internal/plans"
@@ -150,6 +151,7 @@ func main() {
 		NoiseReductionFilter:      os.Getenv("NOISE_REDUCTION_FILTER"),
 		AllowedFrameAncestors:     os.Getenv("ALLOWED_FRAME_ANCESTORS"),
 		AnalyticsScript:           strings.ReplaceAll(os.Getenv("ANALYTICS_SCRIPT"), `\"`, `"`),
+		CaptureTokenSecret:        os.Getenv(capture.EnvSecret),
 		EmailSender:               emailClient,
 		CommentNotifier:           emailClient,
 		ViewNotifier:              emailClient,

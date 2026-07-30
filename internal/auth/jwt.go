@@ -16,15 +16,22 @@ type Claims struct {
 	UserID    string `json:"userId"`
 	TokenID   string `json:"jti"`
 	TokenType string `json:"type"`
+	// CrossSite marks a session established through the cross-origin capture
+	// hand-off, whose cookie must be SameSite=None rather than Strict — a
+	// MajorGTM fork addition. See crosssite.go for why it lives in the token.
+	//
+	// Absent from every previously issued token, and `false` is the correct
+	// reading of that absence, so existing sessions are unaffected.
+	CrossSite bool `json:"xs,omitempty"`
 	jwt.RegisteredClaims
 }
 
 func GenerateAccessToken(secret string, userID string) (string, error) {
-	return generateToken(secret, userID, "access", AccessTokenDuration, "")
+	return generateToken(secret, userID, "access", AccessTokenDuration, "", false)
 }
 
 func GenerateRefreshToken(secret string, userID string, tokenID string) (string, error) {
-	return generateToken(secret, userID, "refresh", RefreshTokenDuration, tokenID)
+	return generateToken(secret, userID, "refresh", RefreshTokenDuration, tokenID, false)
 }
 
 func ValidateToken(secret string, tokenStr string) (*Claims, error) {
@@ -47,11 +54,12 @@ func ValidateToken(secret string, tokenStr string) (*Claims, error) {
 	return claims, nil
 }
 
-func generateToken(secret string, userID string, tokenType string, duration time.Duration, tokenID string) (string, error) {
+func generateToken(secret string, userID string, tokenType string, duration time.Duration, tokenID string, crossSite bool) (string, error) {
 	claims := &Claims{
 		UserID:    userID,
 		TokenID:   tokenID,
 		TokenType: tokenType,
+		CrossSite: crossSite,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
