@@ -162,6 +162,10 @@ func processTranscription(ctx context.Context, db database.DBTX, storage ObjectS
 			); dbErr != nil {
 				slog.Error("transcribe: failed to set no_audio status", "video_id", videoID, "error", dbErr)
 			}
+			// A finished recording with nothing said is still FINISHED. The
+			// consumer is waiting on this video either way; silence here just
+			// makes it wait out a timeout to conclude the same thing.
+			notifyTranscriptionComplete(db, videoID, shareToken, "no_audio", nil)
 			return
 		}
 		slog.Error("transcribe: audio extraction failed", "video_id", videoID, "error", err)
@@ -179,6 +183,10 @@ func processTranscription(ctx context.Context, db database.DBTX, storage ObjectS
 			); dbErr != nil {
 				slog.Error("transcribe: failed to set no_audio status", "video_id", videoID, "error", dbErr)
 			}
+			// A finished recording with nothing said is still FINISHED. The
+			// consumer is waiting on this video either way; silence here just
+			// makes it wait out a timeout to conclude the same thing.
+			notifyTranscriptionComplete(db, videoID, shareToken, "no_audio", nil)
 			return
 		}
 		slog.Error("transcribe: provider failed", "video_id", videoID, "provider", transcriber.Name(), "error", err)
@@ -225,6 +233,10 @@ func processTranscription(ctx context.Context, db database.DBTX, storage ObjectS
 	}
 
 	slog.Info("transcribe: completed", "video_id", videoID, "segments", len(segments))
+
+	// AFTER the status commit, never before: a delivery the consumer acts on must
+	// not be able to arrive before the row it describes is durable.
+	notifyTranscriptionComplete(db, videoID, shareToken, "ready", segments)
 
 	if aiEnabled {
 		if _, err := db.Exec(ctx,
