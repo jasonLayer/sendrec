@@ -543,6 +543,14 @@ var embedEmailGatePageTemplate = template.Must(template.New("embed-emailgate").P
 func (h *Handler) EmbedPage(w http.ResponseWriter, r *http.Request) {
 	shareToken := chi.URLParam(r, "shareToken")
 
+	// SIGNED PLAYBACK GATE (fork addition). 404 rather than 401/403 so an unsigned
+	// request looks exactly like a share token that does not exist. No-op unless
+	// PLAYBACK_REQUIRE_SIGNED is on.
+	if !h.playbackAllowed(r, shareToken) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	var videoID string
 	var title string
 	var fileKey string

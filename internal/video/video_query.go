@@ -347,6 +347,15 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Watch(w http.ResponseWriter, r *http.Request) {
 	shareToken := chi.URLParam(r, "shareToken")
 
+	// SIGNED PLAYBACK GATE (fork addition). 404, not 401/403: an unsigned request
+	// must be indistinguishable from a share token that does not exist, or the
+	// response itself becomes an oracle for enumerating recordings. No-op unless
+	// PLAYBACK_REQUIRE_SIGNED is on.
+	if !h.playbackAllowed(r, shareToken) {
+		httputil.WriteError(w, http.StatusNotFound, "video not found")
+		return
+	}
+
 	var videoID string
 	var title string
 	var duration int

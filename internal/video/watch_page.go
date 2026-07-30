@@ -2011,6 +2011,14 @@ func injectScriptNonce(scriptTag, nonce string) template.HTML {
 func (h *Handler) WatchPage(w http.ResponseWriter, r *http.Request) {
 	shareToken := chi.URLParam(r, "shareToken")
 
+	// SIGNED PLAYBACK GATE (fork addition). 404 rather than 401/403 so an unsigned
+	// request looks exactly like a share token that does not exist. No-op unless
+	// PLAYBACK_REQUIRE_SIGNED is on.
+	if !h.playbackAllowed(r, shareToken) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	var title string
 	var fileKey string
 	var creator string
