@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { announceRecordingComplete } from "../capture/announce";
 import { CameraRecorder } from "../components/CameraRecorder";
 import { Recorder } from "../components/Recorder";
 import { LimitsResponse } from "../types/limits";
@@ -109,6 +110,13 @@ export function Record() {
       });
 
       setShareUrl(`${window.location.origin}/watch/${result.shareToken}`);
+
+      // Fork addition. The recording is committed and shareable at this point,
+      // which is the only moment an embedding application can be told about it —
+      // it cannot see into this frame, and the transcript webhook arrives
+      // minutes later keyed by an id nobody handed it. No-ops when nothing is
+      // embedding us. See src/capture/announce.ts.
+      announceRecordingComplete({ videoId: result.id, shareToken: result.shareToken });
     } catch (err) {
       if (videoId) {
         apiFetch(`/api/videos/${videoId}`, { method: "DELETE" }).catch(() => {});

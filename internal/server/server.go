@@ -125,7 +125,7 @@ func New(cfg Config) *Server {
 		// Fork addition. Constructed only when a secret is configured, so the
 		// route simply does not exist on a stock deployment.
 		if cfg.CaptureTokenSecret != "" {
-			s.captureHandler = capture.NewHandler(cfg.DB, jwtSecret, cfg.CaptureTokenSecret)
+			s.captureHandler = capture.NewHandler(cfg.DB, jwtSecret, cfg.CaptureTokenSecret, cfg.AllowedFrameAncestors)
 		}
 		if cfg.EmailSender != nil {
 			s.authHandler.SetEmailSender(cfg.EmailSender, baseURL)

@@ -8,15 +8,17 @@ package capture
 // literal, never anything derived from the request, so this cannot be turned
 // into an open redirect.
 //
-// WHAT IT DOES NOT DO. It does not render anything, it does not touch the
-// frontend, and it does not ask the recorder to change. A session cookie and a
-// redirect are the entire mechanism.
+// WHAT IT DOES NOT DO. It renders nothing and asks the recorder to change
+// nothing about how it records. A session cookie and a redirect are the entire
+// mechanism; the only thing it tells the frontend is which origin, if any, is
+// entitled to hear that a recording finished — see parent.go.
 
 import (
 	"context"
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/sendrec/sendrec/internal/auth"
@@ -39,14 +41,27 @@ const EnvSecret = "CAPTURE_TOKEN_SECRET"
 // errUnverifiedLocalAccount is the pre-hijack refusal. See resolveUser.
 var errUnverifiedLocalAccount = errors.New("a local account exists for this address but has never been verified")
 
+// ParentParam is the origin the embedding application claims for itself, and
+// ParentQuery is the validated origin handed on to the recorder. See parent.go.
+const (
+	ParentParam = "parent"
+	ParentQuery = "capture_parent"
+)
+
 type Handler struct {
-	db        database.DBTX
-	jwtSecret string
-	secret    string
+	db             database.DBTX
+	jwtSecret      string
+	secret         string
+	allowedParents []string
 }
 
-func NewHandler(db database.DBTX, jwtSecret, secret string) *Handler {
-	return &Handler{db: db, jwtSecret: jwtSecret, secret: secret}
+func NewHandler(db database.DBTX, jwtSecret, secret, allowedFrameAncestors string) *Handler {
+	return &Handler{
+		db:             db,
+		jwtSecret:      jwtSecret,
+		secret:         secret,
+		allowedParents: ParseAllowedParents(allowedFrameAncestors),
+	}
 }
 
 // Redeem exchanges a hand-off token for a session.
@@ -90,10 +105,22 @@ func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	auth.SetCrossSiteRefreshTokenCookie(w, refreshToken)
-	slog.Info("capture: session established",
-		"user_id", userID, "external_id", claims.UserID, "customer_id", claims.CustomerID)
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	// The recorder needs a targetOrigin to announce completion to, and it cannot
+	// discover one for itself. Carrying the VALIDATED origin here means the SPA
+	// never has to decide whom to trust — an unrecognised claim simply arrives
+	// as nothing, and the recorder stays silent.
+	parent := resolveParent(h.allowedParents, r.URL.Query().Get(ParentParam))
+	destination := "/"
+	if parent != "" {
+		destination = "/?" + url.Values{ParentQuery: {parent}}.Encode()
+	}
+
+	slog.Info("capture: session established",
+		"user_id", userID, "external_id", claims.UserID,
+		"customer_id", claims.CustomerID, "parent", parent)
+
+	http.Redirect(w, r, destination, http.StatusFound)
 }
 
 // resolveUser maps the parent's user onto a local one, provisioning as needed.

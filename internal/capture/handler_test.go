@@ -3,6 +3,7 @@ package capture
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ func newTestHandler(t *testing.T) (*Handler, pgxmock.PgxPoolIface) {
 		t.Fatalf("create pgxmock pool: %v", err)
 	}
 	t.Cleanup(mock.Close)
-	return NewHandler(mock, testJWTSecret, testCaptureSecret), mock
+	return NewHandler(mock, testJWTSecret, testCaptureSecret, "https://parent.example"), mock
 }
 
 func validClaims() *Claims {
@@ -166,6 +167,52 @@ func TestRedeem_EstablishesACrossSiteSession(t *testing.T) {
 	}
 }
 
+// The recorder is handed a targetOrigin only when the claim survives the
+// allowlist. Everything else arrives as nothing, and the recorder stays silent
+// rather than announcing a share token to whoever asked.
+func TestRedeem_CarriesOnlyAValidatedParentOrigin(t *testing.T) {
+	cases := []struct {
+		name     string
+		claimed  string
+		location string
+	}{
+		{"allowed", "https://parent.example", "/?capture_parent=https%3A%2F%2Fparent.example"},
+		{"absent", "", "/"},
+		{"unknown origin", "https://evil.example", "/"},
+		{"prefix impostor", "https://parent.example.evil.test", "/"},
+		{"suffix impostor", "https://evil.test/https://parent.example", "/"},
+		{"scheme downgrade", "http://parent.example", "/"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, mock := newTestHandler(t)
+			expectIdentityHit(mock, "parent-user-1", "local-user-1")
+			expectIssueTokens(mock, "local-user-1")
+
+			target := "/capture?token=" + mintFor(t, validClaims())
+			if tc.claimed != "" {
+				target += "&" + ParentParam + "=" + url.QueryEscape(tc.claimed)
+			}
+			req := httptest.NewRequest(http.MethodGet, target, nil)
+			rec := httptest.NewRecorder()
+			handler.Redeem(rec, req)
+
+			if rec.Code != http.StatusFound {
+				t.Fatalf("expected 302, got %d: %s", rec.Code, rec.Body.String())
+			}
+			if location := rec.Header().Get("Location"); location != tc.location {
+				t.Errorf("expected Location %q, got %q", tc.location, location)
+			}
+			// A refused parent claim must not refuse the hand-off itself:
+			// someone who opened the recorder directly still gets a session.
+			if sessionCookie(t, rec) == nil {
+				t.Error("expected a session regardless of the parent claim")
+			}
+		})
+	}
+}
+
 // Every rejection must be silent about WHY and must leave no session behind.
 func TestRedeem_RefusesBadTokens(t *testing.T) {
 	expired := validClaims()
@@ -225,7 +272,7 @@ func TestRedeem_RefusesWhenNoSecretIsConfigured(t *testing.T) {
 		t.Fatalf("create pgxmock pool: %v", err)
 	}
 	defer mock.Close()
-	handler := NewHandler(mock, testJWTSecret, "")
+	handler := NewHandler(mock, testJWTSecret, "", "https://parent.example")
 
 	token, err := Mint("", validClaims())
 	if err != nil {

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/client";
+import { announceRecordingComplete } from "../capture/announce";
 import { LimitsResponse } from "../types/limits";
 
 interface UploadResponse {
@@ -202,6 +203,12 @@ export function Upload() {
           fileName: entry.file.name,
           shareUrl: `${window.location.origin}/watch/${result.shareToken}`,
         });
+
+        // Fork addition. The upload tab is reachable from inside the capture
+        // frame, so a person who uploads instead of recording must not leave the
+        // embedding application waiting on a message that never comes. It
+        // de-duplicates on its side, so announcing each committed file is safe.
+        announceRecordingComplete({ videoId: result.id, shareToken: result.shareToken });
       } catch (err) {
         if (videoId) {
           apiFetch(`/api/videos/${videoId}`, { method: "DELETE" }).catch(() => {});
