@@ -658,8 +658,8 @@ func TestSendWelcome_Success(t *testing.T) {
 	if received.Data["dashboardURL"] != "https://app.sendrec.eu/dashboard" {
 		t.Errorf("expected dashboardURL, got %v", received.Data["dashboardURL"])
 	}
-	if received.Data["githubURL"] != "https://github.com/sendrec/sendrec" {
-		t.Errorf("expected githubURL, got %v", received.Data["githubURL"])
+	if received.Data["githubURL"] != "https://rec.majorgtm.com" {
+		t.Errorf("expected MajorGTM URL, got %v", received.Data["githubURL"])
 	}
 }
 
@@ -694,8 +694,8 @@ func TestSendWelcome_FallbackBodyWhenTemplateIDZero(t *testing.T) {
 	if received.Body == "" {
 		t.Error("expected inline body when template ID is zero")
 	}
-	if !strings.Contains(received.Body, "github.com/sendrec/sendrec") {
-		t.Error("expected GitHub star link in fallback welcome body")
+	if strings.Contains(received.Body, "github.com/sendrec/sendrec") {
+		t.Error("fallback welcome body should not include the upstream SendRec GitHub link")
 	}
 }
 

@@ -27,6 +27,16 @@ func newTestHandler(t *testing.T) (*Handler, pgxmock.PgxPoolIface) {
 	return NewHandler(mock, testJWTSecret, testCaptureSecret, "https://parent.example"), mock
 }
 
+func newTestHandlerWithOrgMap(t *testing.T, orgMap string) (*Handler, pgxmock.PgxPoolIface) {
+	t.Helper()
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatalf("create pgxmock pool: %v", err)
+	}
+	t.Cleanup(mock.Close)
+	return NewHandlerWithOrgMap(mock, testJWTSecret, testCaptureSecret, "https://parent.example", orgMap), mock
+}
+
 func validClaims() *Claims {
 	return &Claims{
 		UserID:     "parent-user-1",
@@ -101,6 +111,12 @@ func expectIssueTokens(mock pgxmock.PgxPoolIface, userID string) {
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 }
 
+func expectEnsureOrgMembership(mock pgxmock.PgxPoolIface, orgID, userID string) {
+	mock.ExpectExec(`INSERT INTO organization_members`).
+		WithArgs(orgID, userID).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+}
+
 func sessionCookie(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	t.Helper()
 	for _, cookie := range rec.Result().Cookies() {
@@ -126,7 +142,7 @@ func TestRedeem_EstablishesACrossSiteSession(t *testing.T) {
 	}
 	// The recorder IS the root route, behind ProtectedRoute. There is no
 	// /record page to send anyone to.
-	if location := rec.Header().Get("Location"); location != "/" {
+	if location := rec.Header().Get("Location"); location != "/?capture_session=1" {
 		t.Errorf("expected a redirect to /, got %q", location)
 	}
 
@@ -176,12 +192,12 @@ func TestRedeem_CarriesOnlyAValidatedParentOrigin(t *testing.T) {
 		claimed  string
 		location string
 	}{
-		{"allowed", "https://parent.example", "/?capture_parent=https%3A%2F%2Fparent.example"},
-		{"absent", "", "/"},
-		{"unknown origin", "https://evil.example", "/"},
-		{"prefix impostor", "https://parent.example.evil.test", "/"},
-		{"suffix impostor", "https://evil.test/https://parent.example", "/"},
-		{"scheme downgrade", "http://parent.example", "/"},
+		{"allowed", "https://parent.example", "/?capture_parent=https%3A%2F%2Fparent.example&capture_session=1"},
+		{"absent", "", "/?capture_session=1"},
+		{"unknown origin", "https://evil.example", "/?capture_session=1"},
+		{"prefix impostor", "https://parent.example.evil.test", "/?capture_session=1"},
+		{"suffix impostor", "https://evil.test/https://parent.example", "/?capture_session=1"},
+		{"scheme downgrade", "http://parent.example", "/?capture_session=1"},
 	}
 
 	for _, tc := range cases {
@@ -210,6 +226,51 @@ func TestRedeem_CarriesOnlyAValidatedParentOrigin(t *testing.T) {
 				t.Error("expected a session regardless of the parent claim")
 			}
 		})
+	}
+}
+
+// MajorGTM capture tokens name the MajorGTM customer, not SendRec's internal
+// organization id. The sidecar must map that tenant and seed the SPA's org
+// context, or /api/videos creates a personal video that MajorGTM correctly
+// refuses to finalize.
+func TestRedeem_CarriesTheMappedCaptureOrganization(t *testing.T) {
+	handler, mock := newTestHandlerWithOrgMap(t, `{"parent-customer-1":"org-1"}`)
+
+	expectIdentityHit(mock, "parent-user-1", "local-user-1")
+	expectEnsureOrgMembership(mock, "org-1", "local-user-1")
+	expectIssueTokens(mock, "local-user-1")
+
+	target := "/capture?token=" + mintFor(t, validClaims()) +
+		"&" + ParentParam + "=" + url.QueryEscape("https://parent.example")
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	rec := httptest.NewRecorder()
+	handler.Redeem(rec, req)
+
+	if rec.Code != http.StatusFound {
+		t.Fatalf("expected 302, got %d: %s", rec.Code, rec.Body.String())
+	}
+	want := "/?capture_org=org-1&capture_parent=https%3A%2F%2Fparent.example&capture_session=1"
+	if location := rec.Header().Get("Location"); location != want {
+		t.Errorf("expected Location %q, got %q", want, location)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet database expectations: %v", err)
+	}
+}
+
+func TestRedeem_RefusesAnUnmappedCaptureCustomerWhenOrgMapIsConfigured(t *testing.T) {
+	handler, mock := newTestHandlerWithOrgMap(t, `{"some-other-customer":"org-2"}`)
+
+	rec := redeem(t, handler, mintFor(t, validClaims()))
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if cookie := sessionCookie(t, rec); cookie != nil {
+		t.Error("expected no session cookie when the customer is unmapped")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("an unmapped customer must stop before touching the database: %v", err)
 	}
 }
 

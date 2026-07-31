@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiFetch, setAccessToken } from "../api/client";
+import { captureSessionActive } from "../capture/announce";
 import { useTheme } from "../hooks/useTheme";
 import { useOrganization } from "../hooks/useOrganization";
 
@@ -14,6 +15,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const isCaptureSession = captureSessionActive(location.search);
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function Layout({ children }: LayoutProps) {
   }
 
   useEffect(() => {
+    if (isCaptureSession) return;
     apiFetch<BillingResponse>("/api/settings/billing")
       .then((res) => { if (res?.plan) setPlan(res.plan); else setPlan("free"); })
       .catch(() => setPlan("free"));
@@ -42,7 +45,11 @@ export function Layout({ children }: LayoutProps) {
         setPlanBadgeEnabled(data.planBadgeEnabled === true);
       })
       .catch(() => setPlanBadgeEnabled(false));
-  }, []);
+  }, [isCaptureSession]);
+
+  if (isCaptureSession) {
+    return <main className="capture-session-shell">{children}</main>;
+  }
 
   function isActive(path: string): boolean {
     if (path === "/analytics") {
@@ -135,8 +142,8 @@ export function Layout({ children }: LayoutProps) {
     <>
       <nav className="nav-bar">
         <Link to="/" className="nav-logo" onClick={handleNavClick}>
-          <img src="/images/logo.png" alt="" width="48" height="48" />
-          <span className="logo-send">Send</span><span className="logo-rec">Rec</span>
+          <img src="/images/logo.svg" alt="" width="48" height="48" />
+          <span className="logo-send">Major</span><span className="logo-rec">GTM</span>
           {plan && planBadgeEnabled && (
             <span className={`plan-badge${plan !== "free" ? " plan-badge--pro" : ""}`}>
               {plan === "business" ? "Business" : plan === "pro" ? "Pro" : "Free"}

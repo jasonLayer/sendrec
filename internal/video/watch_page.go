@@ -1655,7 +1655,7 @@ var watchPageTemplate = template.Must(template.New("watch").Funcs(watchFuncs).Pa
         {{end}}
         </script>
         {{end}}
-        {{if or (eq .SubscriptionPlan "pro") (eq .SubscriptionPlan "business")}}{{if .Branding.FooterText}}<p class="branding">{{.Branding.FooterText}}</p>{{end}}{{else}}<p class="branding">{{if .Branding.FooterText}}{{.Branding.FooterText}} · {{end}}<a href="https://sendrec.eu">Recorded with SendRec</a> — free and open source</p>{{end}}
+        {{if or (eq .SubscriptionPlan "pro") (eq .SubscriptionPlan "business")}}{{if .Branding.FooterText}}<p class="branding">{{.Branding.FooterText}}</p>{{end}}{{else}}<p class="branding">{{if .Branding.FooterText}}{{.Branding.FooterText}} · {{end}}<a href="{{.BaseURL}}">Recorded with MajorGTM</a></p>{{end}}
     </div>
 {{.AnalyticsScript}}
 </body>
@@ -1666,7 +1666,7 @@ var expiredPageTemplate = template.Must(template.New("expired").Parse(`<!DOCTYPE
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Link Expired — SendRec</title>
+    <title>Link Expired — MajorGTM</title>
     <style nonce="{{.Nonce}}">
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1697,7 +1697,7 @@ var expiredPageTemplate = template.Must(template.New("expired").Parse(`<!DOCTYPE
     <div class="container">
         <h1>This link has expired</h1>
         <p>The video owner can extend the link to make it available again.</p>
-        <a href="https://sendrec.eu">Go to SendRec</a>
+        <a href="/">Go to MajorGTM</a>
     </div>
 </body>
 </html>`))
@@ -1707,7 +1707,7 @@ var notFoundPageTemplate = template.Must(template.New("notfound").Parse(`<!DOCTY
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Video Not Found — SendRec</title>
+    <title>Video Not Found — MajorGTM</title>
     <style nonce="{{.Nonce}}">
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1738,7 +1738,7 @@ var notFoundPageTemplate = template.Must(template.New("notfound").Parse(`<!DOCTY
     <div class="container">
         <h1>Video not found</h1>
         <p>This video doesn't exist or has been deleted.</p>
-        <a href="https://sendrec.eu">Go to SendRec</a>
+        <a href="/">Go to MajorGTM</a>
     </div>
 </body>
 </html>`))
@@ -1905,7 +1905,7 @@ var emailGatePageTemplate = template.Must(template.New("emailgate").Parse(`<!DOC
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{.Title}} — SendRec</title>
+    <title>{{.Title}} — MajorGTM</title>
     <style nonce="{{.Nonce}}">
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

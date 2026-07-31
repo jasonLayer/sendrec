@@ -16,8 +16,8 @@ export function ResetPassword() {
       <main className="auth-container">
         <div className="auth-brand">
           <span className="auth-logo">
-            <span className="auth-logo-send">Send</span>
-            <span className="auth-logo-rec">Rec</span>
+            <span className="auth-logo-send">Major</span>
+            <span className="auth-logo-rec">GTM</span>
           </span>
         </div>
         <div className="auth-card auth-centered">
@@ -38,8 +38,8 @@ export function ResetPassword() {
       <main className="auth-container">
         <div className="auth-brand">
           <span className="auth-logo">
-            <span className="auth-logo-send">Send</span>
-            <span className="auth-logo-rec">Rec</span>
+            <span className="auth-logo-send">Major</span>
+            <span className="auth-logo-rec">GTM</span>
           </span>
         </div>
         <div className="auth-card auth-centered">
@@ -95,8 +95,8 @@ export function ResetPassword() {
     <main className="auth-container">
       <div className="auth-brand">
         <span className="auth-logo">
-          <span className="auth-logo-send">Send</span>
-          <span className="auth-logo-rec">Rec</span>
+          <span className="auth-logo-send">Major</span>
+          <span className="auth-logo-rec">GTM</span>
         </span>
       </div>
       <form onSubmit={handleSubmit} className="auth-card">

@@ -15,10 +15,12 @@ package capture
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/sendrec/sendrec/internal/auth"
@@ -38,14 +40,22 @@ const Provider = "majorgtm"
 // rotation.
 const EnvSecret = "CAPTURE_TOKEN_SECRET"
 
+// EnvOrgMap optionally maps the parent's customer id claim to SendRec's
+// organization id. When configured, an unmapped customer is refused: otherwise
+// recordings would fall back to personal history and the parent app could not
+// safely finalize them.
+const EnvOrgMap = "CAPTURE_ORG_MAP"
+
 // errUnverifiedLocalAccount is the pre-hijack refusal. See resolveUser.
 var errUnverifiedLocalAccount = errors.New("a local account exists for this address but has never been verified")
 
 // ParentParam is the origin the embedding application claims for itself, and
 // ParentQuery is the validated origin handed on to the recorder. See parent.go.
 const (
-	ParentParam = "parent"
-	ParentQuery = "capture_parent"
+	ParentParam  = "parent"
+	ParentQuery  = "capture_parent"
+	OrgQuery     = "capture_org"
+	SessionQuery = "capture_session"
 )
 
 type Handler struct {
@@ -53,14 +63,20 @@ type Handler struct {
 	jwtSecret      string
 	secret         string
 	allowedParents []string
+	orgMap         map[string]string
 }
 
 func NewHandler(db database.DBTX, jwtSecret, secret, allowedFrameAncestors string) *Handler {
+	return NewHandlerWithOrgMap(db, jwtSecret, secret, allowedFrameAncestors, "")
+}
+
+func NewHandlerWithOrgMap(db database.DBTX, jwtSecret, secret, allowedFrameAncestors, orgMapJSON string) *Handler {
 	return &Handler{
 		db:             db,
 		jwtSecret:      jwtSecret,
 		secret:         secret,
 		allowedParents: ParseAllowedParents(allowedFrameAncestors),
+		orgMap:         ParseOrgMap(orgMapJSON),
 	}
 }
 
@@ -81,6 +97,13 @@ func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	orgID := h.orgMap[claims.CustomerID]
+	if len(h.orgMap) > 0 && orgID == "" {
+		slog.Warn("capture: refused an unmapped customer", "external_id", claims.UserID, "customer_id", claims.CustomerID)
+		httputil.WriteError(w, http.StatusForbidden, "customer is not configured for capture")
+		return
+	}
+
 	userID, err := h.resolveUser(r.Context(), claims)
 	if err != nil {
 		if errors.Is(err, errUnverifiedLocalAccount) {
@@ -92,6 +115,15 @@ func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
 		slog.Error("capture: failed to resolve the user", "external_id", claims.UserID, "error", err)
 		httputil.WriteError(w, http.StatusInternalServerError, "failed to establish a session")
 		return
+	}
+
+	if orgID != "" {
+		if err := h.ensureOrgMembership(r.Context(), orgID, userID); err != nil {
+			slog.Error("capture: failed to attach the user to the capture organization",
+				"user_id", userID, "customer_id", claims.CustomerID, "org_id", orgID, "error", err)
+			httputil.WriteError(w, http.StatusInternalServerError, "failed to establish a session")
+			return
+		}
 	}
 
 	// Only the refresh token is used. The access token lives in memory in the
@@ -112,15 +144,50 @@ func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
 	// as nothing, and the recorder stays silent.
 	parent := resolveParent(h.allowedParents, r.URL.Query().Get(ParentParam))
 	destination := "/"
-	if parent != "" {
-		destination = "/?" + url.Values{ParentQuery: {parent}}.Encode()
+	values := url.Values{}
+	if orgID != "" {
+		values.Set(OrgQuery, orgID)
 	}
+	if parent != "" {
+		values.Set(ParentQuery, parent)
+	}
+	values.Set(SessionQuery, "1")
+	destination = "/?" + values.Encode()
 
 	slog.Info("capture: session established",
 		"user_id", userID, "external_id", claims.UserID,
-		"customer_id", claims.CustomerID, "parent", parent)
+		"customer_id", claims.CustomerID, "org_id", orgID, "parent", parent)
 
 	http.Redirect(w, r, destination, http.StatusFound)
+}
+
+func ParseOrgMap(raw string) map[string]string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	var parsed map[string]string
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		slog.Error("capture: failed to parse capture organization map", "error", err)
+		return nil
+	}
+	cleaned := make(map[string]string, len(parsed))
+	for customerID, orgID := range parsed {
+		customerID = strings.TrimSpace(customerID)
+		orgID = strings.TrimSpace(orgID)
+		if customerID != "" && orgID != "" {
+			cleaned[customerID] = orgID
+		}
+	}
+	return cleaned
+}
+
+func (h *Handler) ensureOrgMembership(ctx context.Context, orgID, userID string) error {
+	_, err := h.db.Exec(ctx,
+		"INSERT INTO organization_members (organization_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING",
+		orgID, userID,
+	)
+	return err
 }
 
 // resolveUser maps the parent's user onto a local one, provisioning as needed.

@@ -46,6 +46,7 @@ function renderLayout(path = "/") {
 
 describe("Layout", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     mockNavigate.mockReset();
     mockSetAccessToken.mockReset();
     mockApiFetch.mockReset();
@@ -74,7 +75,7 @@ describe("Layout", () => {
 
   it("renders navigation links", () => {
     renderLayout();
-    expect(screen.getByRole("link", { name: /SendRec/ })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /MajorGTM/ })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Record" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute("href", "/library");
     expect(screen.getByRole("link", { name: "Playlists" })).toHaveAttribute("href", "/playlists");
@@ -83,9 +84,18 @@ describe("Layout", () => {
     expect(screen.queryByRole("link", { name: "Upload" })).not.toBeInTheDocument();
   });
 
+  it("renders only the capture surface during embedded capture sessions", () => {
+    renderLayout("/?capture_session=1");
+
+    expect(screen.getByText("Page content")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Library" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+  });
+
   it("renders logo image in nav", () => {
     renderLayout();
-    const logo = document.querySelector('img[src="/images/logo.png"]') as HTMLImageElement;
+    const logo = document.querySelector('img[src="/images/logo.svg"]') as HTMLImageElement;
     expect(logo).toBeInTheDocument();
     expect(logo).toHaveAttribute("alt", "");
   });

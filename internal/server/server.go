@@ -53,6 +53,7 @@ type Config struct {
 	// fork addition). Empty means the /capture route is not registered at all —
 	// a stock deployment has no parent application to trust.
 	CaptureTokenSecret        string
+	CaptureOrgMap             string
 	EmailSender               auth.EmailSender
 	CommentNotifier           video.CommentNotifier
 	ViewNotifier              video.ViewNotifier
@@ -125,7 +126,7 @@ func New(cfg Config) *Server {
 		// Fork addition. Constructed only when a secret is configured, so the
 		// route simply does not exist on a stock deployment.
 		if cfg.CaptureTokenSecret != "" {
-			s.captureHandler = capture.NewHandler(cfg.DB, jwtSecret, cfg.CaptureTokenSecret, cfg.AllowedFrameAncestors)
+			s.captureHandler = capture.NewHandlerWithOrgMap(cfg.DB, jwtSecret, cfg.CaptureTokenSecret, cfg.AllowedFrameAncestors, cfg.CaptureOrgMap)
 		}
 		if cfg.EmailSender != nil {
 			s.authHandler.SetEmailSender(cfg.EmailSender, baseURL)

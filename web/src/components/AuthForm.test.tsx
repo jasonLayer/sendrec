@@ -115,10 +115,10 @@ describe("AuthForm", () => {
     expect(screen.getByText("Go to register")).toBeInTheDocument();
   });
 
-  it("renders SendRec brand logo", () => {
+  it("renders MajorGTM brand logo", () => {
     renderAuthForm();
-    expect(screen.getByText("Send")).toBeInTheDocument();
-    expect(screen.getByText("Rec")).toBeInTheDocument();
+    expect(screen.getByText("Major")).toBeInTheDocument();
+    expect(screen.getByText("GTM")).toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {

@@ -429,7 +429,7 @@ var playlistEmbedTemplate = template.Must(template.New("playlist-embed").Funcs(t
             </div>
             <div class="footer">
                 <span class="footer-title">{{.Title}}</span>
-                <a href="{{.BaseURL}}/watch/playlist/{{.ShareToken}}" target="_blank" rel="noopener">Watch on SendRec</a>
+                <a href="{{.BaseURL}}/watch/playlist/{{.ShareToken}}" target="_blank" rel="noopener">Watch on MajorGTM</a>
             </div>
 ` + safariWarningHTML + `
         </main>

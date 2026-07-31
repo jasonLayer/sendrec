@@ -152,6 +152,7 @@ func main() {
 		AllowedFrameAncestors:     os.Getenv("ALLOWED_FRAME_ANCESTORS"),
 		AnalyticsScript:           strings.ReplaceAll(os.Getenv("ANALYTICS_SCRIPT"), `\"`, `"`),
 		CaptureTokenSecret:        os.Getenv(capture.EnvSecret),
+		CaptureOrgMap:             os.Getenv(capture.EnvOrgMap),
 		EmailSender:               emailClient,
 		CommentNotifier:           emailClient,
 		ViewNotifier:              emailClient,

@@ -719,8 +719,8 @@ func TestResolveBranding_DefaultsOnly(t *testing.T) {
 		brandingSettingsResponse{},
 	)
 
-	if cfg.CompanyName != "SendRec" {
-		t.Errorf("expected company name %q, got %q", "SendRec", cfg.CompanyName)
+	if cfg.CompanyName != "MajorGTM" {
+		t.Errorf("expected company name %q, got %q", "MajorGTM", cfg.CompanyName)
 	}
 	if cfg.ColorBackground != "#0a1628" {
 		t.Errorf("expected background %q, got %q", "#0a1628", cfg.ColorBackground)
@@ -731,7 +731,7 @@ func TestResolveBranding_DefaultsOnly(t *testing.T) {
 	if cfg.HasCustomLogo {
 		t.Error("expected no custom logo")
 	}
-	if cfg.LogoURL != "/images/logo.png" {
+	if cfg.LogoURL != "/images/logo.svg" {
 		t.Errorf("expected default logo URL, got %q", cfg.LogoURL)
 	}
 }

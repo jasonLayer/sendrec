@@ -27,8 +27,12 @@ export const COMPLETE_MESSAGE_TYPE = "sendrec:complete";
 
 /** Set on the landing URL by /capture, already validated. */
 export const PARENT_QUERY_PARAM = "capture_parent";
+export const ORG_QUERY_PARAM = "capture_org";
+export const CAPTURE_SESSION_QUERY_PARAM = "capture_session";
 
 export const PARENT_STORAGE_KEY = "sendrec:capture-parent";
+export const ORG_STORAGE_KEY = "sendrec:capture-org";
+export const CAPTURE_SESSION_STORAGE_KEY = "sendrec:capture-session";
 
 export interface CompletedRecording {
   videoId: string;
@@ -61,6 +65,42 @@ export function captureParentOrigin(): string {
     return sessionStorage.getItem(PARENT_STORAGE_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+export function captureOrgId(): string {
+  const fromUrl = new URLSearchParams(window.location.search).get(ORG_QUERY_PARAM);
+  if (fromUrl) {
+    try {
+      sessionStorage.setItem(ORG_STORAGE_KEY, fromUrl);
+    } catch {
+      // ignored deliberately — the value is still returned below
+    }
+    return fromUrl;
+  }
+
+  try {
+    return sessionStorage.getItem(ORG_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function captureSessionActive(search = window.location.search): boolean {
+  const fromUrl = new URLSearchParams(search).get(CAPTURE_SESSION_QUERY_PARAM);
+  if (fromUrl === "1") {
+    try {
+      sessionStorage.setItem(CAPTURE_SESSION_STORAGE_KEY, "1");
+    } catch {
+      // ignored deliberately — the value is still returned below
+    }
+    return true;
+  }
+
+  try {
+    return sessionStorage.getItem(CAPTURE_SESSION_STORAGE_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 

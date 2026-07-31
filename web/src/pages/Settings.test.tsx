@@ -433,7 +433,7 @@ describe("Settings", () => {
       expect(screen.getByText("Branding")).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText("SendRec"), "My Company");
+    await user.type(screen.getByPlaceholderText("MajorGTM"), "My Company");
     await user.click(screen.getByRole("button", { name: "Save branding" }));
 
     await waitFor(() => {

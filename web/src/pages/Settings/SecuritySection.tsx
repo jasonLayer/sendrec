@@ -161,7 +161,7 @@ function ConnectedAccounts({ initialIdentities, initialIdentityHasPassword }: Co
     <div className="card settings-section">
       <h2>Connected Accounts</h2>
       <p className="card-description">
-        External accounts linked to your SendRec account.
+        External accounts linked to your MajorGTM account.
       </p>
 
       {identityError && (

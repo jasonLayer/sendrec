@@ -1,14 +1,14 @@
 openapi: "3.0.3"
 info:
-  title: SendRec API
+  title: MajorGTM API
   version: "1.57.1"
-  description: API for SendRec, an open-source EU-native async video messaging platform.
+  description: API for MajorGTM recorded updates and async video messaging.
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://app.sendrec.eu
+  - url: https://rec.majorgtm.com
     description: Production
   - url: http://localhost:8080
     description: Local development
@@ -2098,7 +2098,7 @@ paths:
     get:
       tags: [Settings]
       summary: Get branding settings
-      description: Returns the current user's watch page branding customization. Null fields use SendRec defaults. Requires branding to be enabled.
+      description: Returns the current user's watch page branding customization. Null fields use MajorGTM defaults. Requires branding to be enabled.
       operationId: getBrandingSettings
       security:
         - bearerAuth: []
@@ -2124,7 +2124,7 @@ paths:
     put:
       tags: [Settings]
       summary: Update branding settings
-      description: Sets the account-wide watch page branding. Null or empty fields are stored as NULL (use SendRec defaults). Requires branding to be enabled.
+      description: Sets the account-wide watch page branding. Null or empty fields are stored as NULL (use MajorGTM defaults). Requires branding to be enabled.
       operationId: updateBrandingSettings
       security:
         - bearerAuth: []

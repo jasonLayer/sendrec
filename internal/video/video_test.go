@@ -2397,7 +2397,7 @@ func TestWatchPage_Success(t *testing.T) {
 		"download URL": downloadURL,
 		"creator":      "Alex Neamtu",
 		"date":         "05/02/2026",
-		"branding":     "SendRec",
+		"branding":     "MajorGTM",
 		"og:title":     `og:title`,
 		"og:video":     `og:video`,
 	}

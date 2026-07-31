@@ -26,7 +26,7 @@ func HandleDocs(w http.ResponseWriter, r *http.Request) {
 
 const docsHTML = `<!DOCTYPE html>
 <html><head>
-  <title>SendRec API Reference</title>
+  <title>MajorGTM API Reference</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head><body>

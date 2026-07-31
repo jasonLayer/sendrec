@@ -1,10 +1,12 @@
+import { captureOrgId } from "../capture/announce";
+
 const STORAGE_KEY = "sendrec-org-id";
 
 let currentOrgId: string | null = null;
 let listeners: Array<() => void> = [];
 
 if (typeof window !== "undefined") {
-  currentOrgId = localStorage.getItem(STORAGE_KEY);
+  currentOrgId = captureOrgId() || localStorage.getItem(STORAGE_KEY);
 }
 
 export function getCurrentOrgId(): string | null {

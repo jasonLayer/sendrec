@@ -123,7 +123,7 @@ export function BrandingSection({ initialBranding, limits }: BrandingSectionProp
           className="form-input"
           value={branding.companyName ?? ""}
           onChange={(e) => setBranding({ ...branding, companyName: e.target.value || null })}
-          placeholder="SendRec"
+          placeholder="MajorGTM"
           maxLength={limits?.fieldLimits?.companyName ?? 200}
         />
       </div>
@@ -239,7 +239,7 @@ export function BrandingSection({ initialBranding, limits }: BrandingSectionProp
       >
         <p className="branding-preview-label">Preview</p>
         <div className="branding-preview-title" style={{ color: branding.colorAccent ?? "#00b67a" }}>
-          {branding.companyName || "SendRec"}
+          {branding.companyName || "MajorGTM"}
         </div>
         <div className="branding-preview-card" style={{ background: branding.colorSurface ?? "#1e293b" }}>
           <span style={{ color: branding.colorText ?? "#ffffff", fontSize: 14 }}>Sample video title</span>
@@ -281,7 +281,7 @@ body                /* Background, font, text color */
 /* Header & Footer */
 .logo               /* Logo + name link */
 .logo img           /* Logo image */
-.branding           /* "Shared via SendRec" footer */
+.branding           /* "Shared via MajorGTM" footer */
 .branding a         /* Footer link */
 
 /* Video Player */

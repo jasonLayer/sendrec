@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   announceRecordingComplete,
+  captureSessionActive,
+  captureOrgId,
   captureParentOrigin,
   COMPLETE_MESSAGE_TYPE,
+  CAPTURE_SESSION_QUERY_PARAM,
+  CAPTURE_SESSION_STORAGE_KEY,
+  ORG_QUERY_PARAM,
+  ORG_STORAGE_KEY,
   PARENT_QUERY_PARAM,
   PARENT_STORAGE_KEY,
 } from "./announce";
@@ -109,6 +115,56 @@ describe("captureParentOrigin", () => {
 
     expect(captureParentOrigin()).toBe("");
     expect(denied).toHaveBeenCalled();
+  });
+});
+
+describe("captureOrgId", () => {
+  it("reads the organization the server mapped for this capture", () => {
+    landOn(`?${ORG_QUERY_PARAM}=org-1`);
+    expect(captureOrgId()).toBe("org-1");
+  });
+
+  it("survives the parameter disappearing from the URL", () => {
+    landOn(`?${ORG_QUERY_PARAM}=org-1`);
+    expect(captureOrgId()).toBe("org-1");
+
+    landOn("library");
+    expect(captureOrgId()).toBe("org-1");
+  });
+
+  it("stores the mapped organization under a stable key", () => {
+    landOn(`?${ORG_QUERY_PARAM}=org-1`);
+    captureOrgId();
+    expect(sessionStorage.getItem(ORG_STORAGE_KEY)).toBe("org-1");
+  });
+
+  it("is empty when the recorder was opened directly", () => {
+    expect(captureOrgId()).toBe("");
+  });
+});
+
+describe("captureSessionActive", () => {
+  it("is active when the server marks the landing page as a capture session", () => {
+    landOn(`?${CAPTURE_SESSION_QUERY_PARAM}=1`);
+    expect(captureSessionActive()).toBe(true);
+  });
+
+  it("survives the parameter disappearing from the URL", () => {
+    landOn(`?${CAPTURE_SESSION_QUERY_PARAM}=1`);
+    expect(captureSessionActive()).toBe(true);
+
+    landOn("library");
+    expect(captureSessionActive()).toBe(true);
+  });
+
+  it("stores the capture session under a stable key", () => {
+    landOn(`?${CAPTURE_SESSION_QUERY_PARAM}=1`);
+    captureSessionActive();
+    expect(sessionStorage.getItem(CAPTURE_SESSION_STORAGE_KEY)).toBe("1");
+  });
+
+  it("is inactive when the recorder was opened directly", () => {
+    expect(captureSessionActive()).toBe(false);
   });
 });
 

@@ -185,7 +185,7 @@ func TestWatchPage_Success_RendersVideoPlayer(t *testing.T) {
 		"creator":         "Bob Smith",
 		"date":            "05/02/2026",
 		"download button": `id="download-btn"`,
-		"branding":        "SendRec",
+		"branding":        "MajorGTM",
 		"spinner":         "player-spinner",
 		"error overlay":   "player-error",
 		"seek tooltip":    "seek-time-tooltip",
@@ -1290,8 +1290,8 @@ func TestWatchPage_BrandingLogoLinksToSendrec(t *testing.T) {
 	if !strings.Contains(body, `href="`+testBaseURL+`"`) {
 		t.Error("expected logo to link to app base URL")
 	}
-	if !strings.Contains(body, `src="/images/logo.png"`) {
-		t.Error("expected logo to use /images/logo.png, not a data URI")
+	if !strings.Contains(body, `src="/images/logo.svg"`) {
+		t.Error("expected logo to use /images/logo.svg, not a data URI")
 	}
 	waitAndCheckExpectations(t, mock)
 }
@@ -2903,7 +2903,7 @@ func TestWatchPage_MetaDescription(t *testing.T) {
 	}
 }
 
-func TestWatchPageFreeUserAlwaysShowsSendRecBadge(t *testing.T) {
+func TestWatchPageFreeUserAlwaysShowsMajorGTMBadge(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	if err != nil {
 		t.Fatal(err)
@@ -2943,18 +2943,15 @@ func TestWatchPageFreeUserAlwaysShowsSendRecBadge(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, "Recorded with SendRec") {
-		t.Error("free user with custom footer should still show 'Recorded with SendRec'")
+	if !strings.Contains(body, "Recorded with MajorGTM") {
+		t.Error("free user with custom footer should still show 'Recorded with MajorGTM'")
 	}
 	if !strings.Contains(body, `href="https://sendrec.eu"`) {
-		t.Error("free user should have SendRec link in footer")
-	}
-	if !strings.Contains(body, "free and open source") {
-		t.Error("free user footer should include 'free and open source'")
+		t.Error("free user should have MajorGTM link in footer")
 	}
 }
 
-func TestWatchPageProUserCanRemoveSendRecBadge(t *testing.T) {
+func TestWatchPageProUserCanRemoveMajorGTMBadge(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	if err != nil {
 		t.Fatal(err)
@@ -2997,12 +2994,12 @@ func TestWatchPageProUserCanRemoveSendRecBadge(t *testing.T) {
 	if !strings.Contains(body, "Pro Company Footer") {
 		t.Error("pro user should see their custom footer")
 	}
-	if strings.Contains(body, "Recorded with SendRec") {
-		t.Error("pro user with custom footer should NOT show 'Recorded with SendRec'")
+	if strings.Contains(body, "Recorded with MajorGTM") {
+		t.Error("pro user with custom footer should NOT show 'Recorded with MajorGTM'")
 	}
 }
 
-func TestWatchPageBusinessUserCanRemoveSendRecBadge(t *testing.T) {
+func TestWatchPageBusinessUserCanRemoveMajorGTMBadge(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	if err != nil {
 		t.Fatal(err)
@@ -3045,8 +3042,8 @@ func TestWatchPageBusinessUserCanRemoveSendRecBadge(t *testing.T) {
 	if !strings.Contains(body, "Business Company Footer") {
 		t.Error("business user should see their custom footer")
 	}
-	if strings.Contains(body, "Recorded with SendRec") {
-		t.Error("business user with custom footer should NOT show 'Recorded with SendRec'")
+	if strings.Contains(body, "Recorded with MajorGTM") {
+		t.Error("business user with custom footer should NOT show 'Recorded with MajorGTM'")
 	}
 }
 

@@ -151,7 +151,7 @@ export function ProfileSection({
       <div className="card settings-section">
         <h2>Appearance</h2>
         <p className="card-description">
-          Choose how SendRec looks to you.
+          Choose how MajorGTM looks to you.
         </p>
 
         <fieldset className="btn-row" style={{ border: "none", padding: 0, margin: 0 }}>

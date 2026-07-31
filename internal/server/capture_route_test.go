@@ -73,7 +73,7 @@ func TestCaptureRouteRegisteredWithASecret(t *testing.T) {
 	if rec.Code != http.StatusFound {
 		t.Fatalf("expected 302 from the capture route, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if location := rec.Header().Get("Location"); location != "/" {
+	if location := rec.Header().Get("Location"); location != "/?capture_session=1" {
 		t.Errorf("expected a redirect to the recorder at /, got %q", location)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

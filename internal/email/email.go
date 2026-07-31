@@ -56,7 +56,7 @@ type Client struct {
 	sendmailAvailable bool
 }
 
-const defaultFromAddress = "noreply@sendrec.eu"
+const defaultFromAddress = "noreply@majorgtm.com"
 
 func New(cfg Config) *Client {
 	cfg.SMTPTLS = normalizeSMTPTLS(cfg.SMTPTLS)
@@ -528,13 +528,12 @@ func (c *Client) SendWelcome(ctx context.Context, toEmail, toName, dashboardURL 
 		Data: map[string]any{
 			"name":         toName,
 			"dashboardURL": dashboardURL,
-			"githubURL":    "https://github.com/sendrec/sendrec",
+			"githubURL":    "https://rec.majorgtm.com",
 		},
 		ContentType: "html",
-		subject:     "Welcome to SendRec",
+		subject:     "Welcome to MajorGTM",
 		Body: fmt.Sprintf(
-			`<p>Hi %s,</p><p>Welcome to SendRec! Your account is ready.</p><p><a href="%s">Go to dashboard</a></p>`+
-				`<p style="margin-top:16px;font-size:13px;color:#64748b;">SendRec is open source. If you find it useful, <a href="https://github.com/sendrec/sendrec">star us on GitHub</a>!</p>`,
+			`<p>Hi %s,</p><p>Welcome to MajorGTM! Your account is ready.</p><p><a href="%s">Go to dashboard</a></p>`,
 			toName, dashboardURL,
 		),
 	}
@@ -584,9 +583,9 @@ func (c *Client) SendOnboardingDay7(ctx context.Context, toEmail, toName, dashbo
 			"dashboardURL": dashboardURL,
 		},
 		ContentType: "html",
-		subject:     "Unlock more with SendRec Pro",
+		subject:     "Unlock more with MajorGTM",
 		Body: fmt.Sprintf(
-			`<p>Hi %s,</p><p>Unlock more with SendRec Pro — longer recordings, custom branding, and more.</p><p><a href="%s">Learn more</a></p>`,
+			`<p>Hi %s,</p><p>Unlock more with MajorGTM — longer recordings, custom branding, and more.</p><p><a href="%s">Learn more</a></p>`,
 			toName, dashboardURL,
 		),
 	}
@@ -651,9 +650,9 @@ func (c *Client) SendOrgInvite(ctx context.Context, toEmail, orgName, inviterNam
 			"acceptLink":  acceptLink,
 		},
 		ContentType: "html",
-		subject:     fmt.Sprintf("Join %s on SendRec", orgName),
+		subject:     fmt.Sprintf("Join %s on MajorGTM", orgName),
 		Body: fmt.Sprintf(
-			`<p>Hi,</p><p><strong>%s</strong> has invited you to join <strong>%s</strong> on SendRec.</p><p><a href="%s">Accept invitation</a></p>`,
+			`<p>Hi,</p><p><strong>%s</strong> has invited you to join <strong>%s</strong> on MajorGTM.</p><p><a href="%s">Accept invitation</a></p>`,
 			inviterName, orgName, acceptLink,
 		),
 	}

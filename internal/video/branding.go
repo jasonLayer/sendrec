@@ -24,8 +24,8 @@ const (
 	defaultColorSurface    = "#1e293b"
 	defaultColorText       = "#ffffff"
 	defaultColorAccent     = "#00b67a"
-	defaultCompanyName     = "SendRec"
-	defaultLogoPath        = "/images/logo.png"
+	defaultCompanyName     = "MajorGTM"
+	defaultLogoPath        = "/images/logo.svg"
 	defaultFooterText      = ""
 
 	maxLogoUploadBytes = 512 * 1024
