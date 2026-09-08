@@ -58,6 +58,27 @@ const (
 	SessionQuery = "capture_session"
 )
 
+// ModeParam is how the embedding application asks for a capture surface other
+// than the recorder page, and ModeQuery carries the answer to the SPA. Only the
+// modes below pass; anything else lands on the recorder as if nothing was asked.
+//
+// "bridge" is MajorGTM's in-panel audio update: the parent records with its own
+// UI and hands the finished blob to a hidden frame here, which owns the session
+// and does the upload. See web/src/capture/Bridge.tsx.
+const (
+	ModeParam  = "mode"
+	ModeQuery  = "capture_mode"
+	ModeBridge = "bridge"
+)
+
+// resolveMode returns the claimed mode if it is one the SPA knows, else "".
+func resolveMode(claimed string) string {
+	if claimed == ModeBridge {
+		return claimed
+	}
+	return ""
+}
+
 type Handler struct {
 	db             database.DBTX
 	jwtSecret      string
@@ -150,6 +171,9 @@ func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
 	}
 	if parent != "" {
 		values.Set(ParentQuery, parent)
+	}
+	if mode := resolveMode(r.URL.Query().Get(ModeParam)); mode != "" {
+		values.Set(ModeQuery, mode)
 	}
 	values.Set(SessionQuery, "1")
 	destination = "/?" + values.Encode()

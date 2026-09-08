@@ -229,6 +229,44 @@ func TestRedeem_CarriesOnlyAValidatedParentOrigin(t *testing.T) {
 	}
 }
 
+// The parent may ask for the upload bridge instead of the recorder page. Only a
+// mode the SPA knows is carried; an unknown one is dropped, never echoed.
+func TestRedeem_CarriesOnlyAKnownCaptureMode(t *testing.T) {
+	cases := []struct {
+		name     string
+		mode     string
+		location string
+	}{
+		{"bridge", ModeBridge, "/?capture_mode=bridge&capture_session=1"},
+		{"absent", "", "/?capture_session=1"},
+		{"unknown", "dashboard", "/?capture_session=1"},
+		{"injection", "bridge&capture_org=evil", "/?capture_session=1"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler, mock := newTestHandler(t)
+			expectIdentityHit(mock, "parent-user-1", "local-user-1")
+			expectIssueTokens(mock, "local-user-1")
+
+			target := "/capture?token=" + mintFor(t, validClaims())
+			if tc.mode != "" {
+				target += "&" + ModeParam + "=" + url.QueryEscape(tc.mode)
+			}
+			req := httptest.NewRequest(http.MethodGet, target, nil)
+			rec := httptest.NewRecorder()
+			handler.Redeem(rec, req)
+
+			if rec.Code != http.StatusFound {
+				t.Fatalf("expected 302, got %d: %s", rec.Code, rec.Body.String())
+			}
+			if location := rec.Header().Get("Location"); location != tc.location {
+				t.Errorf("expected Location %q, got %q", tc.location, location)
+			}
+		})
+	}
+}
+
 // MajorGTM capture tokens name the MajorGTM customer, not SendRec's internal
 // organization id. The sidecar must map that tenant and seed the SPA's org
 // context, or /api/videos creates a personal video that MajorGTM correctly

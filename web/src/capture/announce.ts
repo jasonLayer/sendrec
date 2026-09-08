@@ -25,12 +25,25 @@
 /** The message type the embedding application listens for. */
 export const COMPLETE_MESSAGE_TYPE = "sendrec:complete";
 
+// The upload bridge's vocabulary (MajorGTM's in-panel audio update). The parent
+// records with its own UI and posts the finished blob here; this frame owns the
+// session and does the upload, then announces completion exactly as the
+// recorder page does. See Bridge.tsx.
+export const UPLOAD_MESSAGE_TYPE = "sendrec:upload";
+export const PROGRESS_MESSAGE_TYPE = "sendrec:progress";
+export const ERROR_MESSAGE_TYPE = "sendrec:error";
+export const BRIDGE_READY_MESSAGE_TYPE = "sendrec:bridge-ready";
+
 /** Set on the landing URL by /capture, already validated. */
 export const PARENT_QUERY_PARAM = "capture_parent";
 export const ORG_QUERY_PARAM = "capture_org";
 export const CAPTURE_SESSION_QUERY_PARAM = "capture_session";
 
+export const MODE_QUERY_PARAM = "capture_mode";
+export const MODE_BRIDGE = "bridge";
+
 export const PARENT_STORAGE_KEY = "sendrec:capture-parent";
+export const MODE_STORAGE_KEY = "sendrec:capture-mode";
 export const ORG_STORAGE_KEY = "sendrec:capture-org";
 export const CAPTURE_SESSION_STORAGE_KEY = "sendrec:capture-session";
 
@@ -83,6 +96,44 @@ export function captureOrgId(): string {
     return sessionStorage.getItem(ORG_STORAGE_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+/**
+ * The capture surface the server said the parent asked for, or "". Read the
+ * same way as the parent origin: from the landing URL first, then from what was
+ * remembered, because the SPA re-renders the root route without the query.
+ */
+export function captureMode(search = window.location.search): string {
+  const fromUrl = new URLSearchParams(search).get(MODE_QUERY_PARAM);
+  if (fromUrl) {
+    try {
+      sessionStorage.setItem(MODE_STORAGE_KEY, fromUrl);
+    } catch {
+      // ignored deliberately — the value is still returned below
+    }
+    return fromUrl;
+  }
+
+  try {
+    return sessionStorage.getItem(MODE_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Post any bridge message to the validated parent. Silent when there is nobody
+ * to tell, for the same reasons announceRecordingComplete is.
+ */
+export function postToParent(message: Record<string, unknown>): void {
+  if (window.parent === window) return;
+  const parentOrigin = captureParentOrigin();
+  if (!parentOrigin) return;
+  try {
+    window.parent.postMessage(message, parentOrigin);
+  } catch {
+    // ignored deliberately
   }
 }
 

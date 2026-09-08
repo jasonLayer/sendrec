@@ -5,6 +5,8 @@ import { Layout } from "./components/Layout";
 import { Login } from "./pages/Login";
 import { Library } from "./pages/Library";
 import { Record } from "./pages/Record";
+import { Bridge } from "./capture/Bridge";
+import { captureMode, MODE_BRIDGE } from "./capture/announce";
 import { Register } from "./pages/Register";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -59,7 +61,7 @@ export function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <Record />
+            {captureMode() === MODE_BRIDGE ? <Bridge /> : <Record />}
           </ProtectedRoute>
         }
       />

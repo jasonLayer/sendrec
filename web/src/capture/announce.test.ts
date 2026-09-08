@@ -3,8 +3,12 @@ import {
   announceRecordingComplete,
   captureSessionActive,
   captureOrgId,
+  captureMode,
   captureParentOrigin,
   COMPLETE_MESSAGE_TYPE,
+  MODE_BRIDGE,
+  MODE_QUERY_PARAM,
+  MODE_STORAGE_KEY,
   CAPTURE_SESSION_QUERY_PARAM,
   CAPTURE_SESSION_STORAGE_KEY,
   ORG_QUERY_PARAM,
@@ -165,6 +169,20 @@ describe("captureSessionActive", () => {
 
   it("is inactive when the recorder was opened directly", () => {
     expect(captureSessionActive()).toBe(false);
+  });
+});
+
+describe("captureMode", () => {
+  it("is the mode the server carried on the landing URL, and survives its loss", () => {
+    landOn(`?${MODE_QUERY_PARAM}=${MODE_BRIDGE}`);
+    expect(captureMode()).toBe(MODE_BRIDGE);
+    landOn("");
+    expect(captureMode()).toBe(MODE_BRIDGE);
+    expect(sessionStorage.getItem(MODE_STORAGE_KEY)).toBe(MODE_BRIDGE);
+  });
+
+  it("is empty for the recorder page", () => {
+    expect(captureMode()).toBe("");
   });
 });
 
