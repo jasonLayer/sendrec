@@ -39,6 +39,18 @@ export interface CompletedRecording {
   shareToken: string;
 }
 
+/** Report the live recorder light without sharing any recording content. */
+export function announceRecordingState(active: boolean): void {
+  if (window.parent === window) return;
+  const parentOrigin = captureParentOrigin();
+  if (!parentOrigin) return;
+  try {
+    window.parent.postMessage({ type: "sendrec:recording-state", active }, parentOrigin);
+  } catch {
+    // A missing parent must never interrupt capture.
+  }
+}
+
 /**
  * The origin entitled to hear about recordings made in this session, or "".
  *
