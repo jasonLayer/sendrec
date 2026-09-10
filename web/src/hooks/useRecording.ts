@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { announceRecordingState } from "../capture/announce";
 
 export const MIN_RECORDING_SECONDS = 1;
 export const MIN_RECORDING_BYTES = 1024;
@@ -34,6 +35,10 @@ export function useRecording(
   onMaxDurationReached: () => void,
 ): UseRecordingResult {
   const [state, setStateRaw] = useState<RecordingState>("idle");
+  useEffect(() => {
+    announceRecordingState(state === "recording");
+    return () => announceRecordingState(false);
+  }, [state]);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
 
