@@ -1,9 +1,8 @@
 # Stage 1: Build frontend
 FROM node:24-alpine AS frontend
-ENV PNPM_CONFIG_STRICT_DEP_BUILDS=false
 WORKDIR /app/web
-COPY web/package.json web/pnpm-lock.yaml* ./
-RUN corepack enable && pnpm install --frozen-lockfile
+COPY web/package.json web/pnpm-lock.yaml* web/pnpm-workspace.yaml ./
+RUN corepack enable && corepack prepare pnpm@12.3.4 --activate && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 
